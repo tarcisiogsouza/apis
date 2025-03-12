@@ -2,44 +2,52 @@ const rfcClient = require("node-rfc").Client;
 const XLSX = require("xlsx");
 const fs = require("fs");
 
-// Configurações do SAP
+// Configuração do SAP
 const client = new rfcClient({
-  user: "USUARIO_SAP",
-  passwd: "SENHA_SAP",
-  ashost: "HOST_SAP",
-  sysnr: "00",
-  client: "100",
-  lang: "EN"
+    user: "USUARIO_SAP",
+    passwd: "SENHA_SAP",
+    ashost: "HOST_SAP",
+    sysnr: "00",
+    client: "100",
+    lang: "EN"
 });
 
-// Função para extrair tabela do SAP e salvar no Excel
 async function exportTable(tableName) {
-  try {
-    await client.open();
-    const result = await client.call("RFC_READ_TABLE", {
-      QUERY_TABLE: tableName,
-      ROWSKIPS: 0,
-      ROWCOUNT: 1000 // Ajuste conforme necessário
-    });
+    try {
+        await client.open();
+        const result = await client.call("RFC_READ_TABLE", {
+            QUERY_TABLE: tableName,
+            ROWSKIPS: 0,
+            ROWCOUNT: 1000
+        });
 
-    const data = result.DATA.map(row => {
-      return row.WA.split(""); // Ajustar conforme o formato dos dados
-    });
+        const data = result.DATA.map(row => row.WA.split(""));
 
-    // Criar planilha Excel
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    XLSX.utils.book_append_sheet(wb, ws, tableName);
+        // Criar planilha
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, tableName);
 
-    // Salvar na pasta compartilhada
-    const filePath = `C:/PastaCompartilhada/${tableName}.xlsx`;
-    XLSX.writeFile(wb, filePath);
+        // Salvar na pasta compartilhada
+        const filePath = `//servidor/pasta_compartilhada/${tableName}.xlsx`;
+        XLSX.writeFile(wb, filePath);
 
-    console.log(`Arquivo salvo: ${filePath}`);
-  } catch (error) {
-    console.error("Erro na extração:", error);
-  }
+        console.log(`Arquivo salvo: ${filePath}`);
+    } catch (error) {
+        console.error("Erro na extração:", error);
+    }
 }
 
-// Chamar a função para uma tabela
-exportTable("TABELA_SAP");
+// Lista de tabelas para exportação automática
+const tabelas = ["TABELA1", "TABELA2", "TABELA3"];
+
+async function executarRotina() {
+    for (const tabela of tabelas) {
+        await exportTable(tabela);
+    }
+    console.log("Exportação concluída!");
+}
+
+// Executa o processo a cada 6 horas
+setInterval(executarRotina, 6 * 60 * 60 * 1000);
+
